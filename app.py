@@ -1,8 +1,8 @@
 import streamlit as st
-import google.generativeai as genai
+from google import genai
 
 api_key = st.secrets["GEMINI_API_KEY"]
-genai.configure(api_key=api_key)
+client = genai.Client(api_key=api_key)
 
 st.set_page_config(
     page_title="Saransh AI Chatbot",
@@ -16,10 +16,6 @@ st.caption("Powered by Google Gemini · Built by Saransh Gupta")
 if "messages" not in st.session_state:
     st.session_state.messages = []
 
-if "chat_session" not in st.session_state:
-    model = genai.GenerativeModel("gemini-pro")
-    st.session_state.chat_session = model.start_chat(history=[])
-
 for message in st.session_state.messages:
     with st.chat_message(message["role"]):
         st.markdown(message["content"])
@@ -32,7 +28,10 @@ if prompt := st.chat_input("Ask me anything..."):
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
             try:
-                response = st.session_state.chat_session.send_message(prompt)
+                response = client.models.generate_content(
+                    model="gemini-2.5-flash",
+                    contents=prompt
+                )
                 reply = response.text
                 st.markdown(reply)
                 st.session_state.messages.append(
