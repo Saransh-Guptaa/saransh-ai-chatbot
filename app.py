@@ -5,9 +5,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
+api_key = st.secrets.get("GEMINI_API_KEY") or os.getenv("GEMINI_API_KEY")
 
-model = genai.GenerativeModel("gemini-1.5-flash")
+genai.configure(api_key=api_key)
 
 st.set_page_config(
     page_title="Saransh AI Chatbot",
@@ -17,6 +17,10 @@ st.set_page_config(
 
 st.title("🤖 Saransh's AI Chatbot")
 st.caption("Powered by Google Gemini · Built by Saransh Gupta")
+
+if "chat" not in st.session_state:
+    model = genai.GenerativeModel("gemini-2.0-flash")
+    st.session_state.chat = model.start_chat(history=[])
 
 if "messages" not in st.session_state:
     st.session_state.messages = []
@@ -32,8 +36,13 @@ if prompt := st.chat_input("Ask me anything..."):
 
     with st.chat_message("assistant"):
         with st.spinner("Thinking..."):
-            response = model.generate_content(prompt)
-            reply = response.text
-            st.markdown(reply)
-
-    st.session_state.messages.append({"role": "assistant", "content": reply})
+            try:
+                response = st.session_state.chat.send_message(prompt)
+                reply = response.text
+                st.markdown(reply)
+                st.session_state.messages.append(
+                    {"role": "assistant", "content": reply}
+                )
+            except Exception as e:
+                st.error(f"Error: {str(e)}")
+                st.info("Please check your API key in settings.")
